@@ -1,0 +1,12 @@
+# dataset (não é submetido)
+circor/
+
+# ficheiros gerados pelo notebook
+*.pkl
+*.npy
+*.pt
+rec.csv
+windows.csv
+
+.ipynb_checkpoints/
+__pycache__/
