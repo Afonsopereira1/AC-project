@@ -1,0 +1,33 @@
+
+# Ambiente virtual Python
+.venv/
+venv/
+
+# Dataset CirCor
+circor/
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Ficheiros temporarios Jupyter
+.ipynb_checkpoints/
+
+# Ficheiros locais do sistema
+.DS_Store
+AC2_Project_20262027.pdf
+
+# Caches gerados pelo notebook (~2,5 GB; recriadas na primeira execução)
+signals.pkl
+mel.npy
+mfcc.npy
+rec.csv
+windows.csv
+*.npy
+*.pkl
+
+# Material fora da entrega
+_fora_da_entrega/
+
+# Saídas locais de teste
+predictions*.csv
