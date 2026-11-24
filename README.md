@@ -33,8 +33,9 @@ O dataset **não** está incluído.
    cerca de 2,5 GB; também `rec.csv` e `windows.csv`). São reutilizadas nas execuções seguintes;
    se o pré-processamento ou as features mudarem, têm de ser apagadas.
 3. Em CPU, a execução completa demora cerca de 3 horas, quase todas nos treinos. As sementes estão
-   fixas (`SEED = 42`), pelo que os resultados são reprodutíveis na mesma máquina e com as mesmas versões
-   das bibliotecas (noutra máquina podem variar ligeiramente).
+   fixas (`SEED = 42`). A RNN reproduz exatamente os mesmos resultados; o treino da CNN, porém, pode variar
+   com a versão das bibliotecas e o hardware (numa execução anterior do mesmo código, noutro ambiente, a
+   WAmurmur da CNN no teste foi 0,793 em vez de 0,758). A secção 7.6 do notebook regista as versões usadas.
 4. A secção 7.4 guarda os modelos finais em `artefactos/`.
 
 ### Protocolo de avaliação
@@ -47,10 +48,14 @@ WAmurmur por paciente, com a matriz de confusão por paciente.
 
 | Modelo | WAmurmur |
 |---|---:|
-| CNN (exp. 5) | 0,793 |
+| CNN (exp. 5) | 0,758 |
 | RNN (R3) | 0,775 |
 
-(Baseline "tudo Absent": 0,365. Intervalos de confiança a 95 % por bootstrap: CNN 0,70–0,88; RNN 0,68–0,86.)
+(Baseline "tudo Absent": 0,365. Intervalos de confiança a 95 % por bootstrap: CNN 0,67–0,85; RNN 0,68–0,86.
+Diferença RNN − CNN: +0,019, IC 95 % de −0,037 a 0,079, não significativa.)
+
+O modelo usado para o dataset escondido é a CNN: foi escolhida na validação (WAmurmur 0,767 contra 0,764 da RNN)
+antes de se ver o teste, e a escolha não foi alterada depois.
 
 ## Gerar o CSV de previsões (dataset escondido)
 
