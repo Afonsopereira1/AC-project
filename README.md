@@ -8,7 +8,8 @@ por paciente. Dois classificadores: **CNN 2D** (espectrograma mel) e **RNN** (GR
 | Ficheiro | Descrição |
 |---|---|
 | `MLII_atualizado.ipynb` | Notebook principal: análise exploratória, split, pré-processamento, modelos, experiências, avaliação final, guardar modelos e gerar previsões. |
-| `murmur_pipeline.py` | Inferência por paciente sem labels (usada para o CSV do dataset escondido) e métricas (WAmurmur, matriz de confusão da Tabela 1). |
+| `murmur_pipeline.py` | Inferência por paciente sem labels (usada para o CSV do dataset escondido, incluindo o formato do template do bónus) e métricas (WAmurmur, matriz de confusão da Tabela 1). |
+| `PL3_G06_test_results.csv` | Previsões da CNN para os 100 pacientes do dataset escondido (formato `ID,Murmur`). |
 | `artefactos/` | Modelos finais e estatísticas de normalização (criados pela secção 7.4 do notebook). |
 | `requirements.txt` | Dependências. |
 
@@ -41,7 +42,7 @@ O dataset **não** está incluído.
 ### Protocolo de avaliação
 Split por paciente (70 / 15 / 15 %), estratificado por `Murmur`. As crianças com dois registos
 (`Additional ID`) ficam sempre no mesmo conjunto. Todas as decisões (hiperparâmetros, época, limiar,
-arquitetura) usam só a validação; o teste é avaliado uma única vez, no fim. A métrica principal é a
+arquitetura) usam só a validação; o teste é avaliado uma única vez por execução, no fim. A métrica principal é a
 WAmurmur por paciente, com a matriz de confusão por paciente.
 
 ### Resultados no teste (145 pacientes)
@@ -60,14 +61,27 @@ antes de se ver o teste, e a escolha não foi alterada depois.
 ## Gerar o CSV de previsões (dataset escondido)
 
 Com os modelos já guardados em `artefactos/` (secção 7.4 do notebook), numa pasta com os ficheiros
-`IDPACIENTE_VÁLVULA.wav` (sem labels nem `.tsv`):
+`IDPACIENTE_VÁLVULA.wav` (sem labels nem `.tsv`).
+
+**Submissão do bónus (grupo PL3 G06).** Os dados escondidos estão em `CirCor_test_students/` (não
+incluída na entrega: 100 pacientes, `.wav` em `test_data/`). O ficheiro a submeter segue o template
+`PLX_GYY_test_results.csv`: colunas `ID,Murmur`, as 100 linhas do template pela mesma ordem, e
+`Murmur` igual a Present, Unknown ou Absent:
+
+```bash
+python murmur_pipeline.py --wav-dir CirCor_test_students/test_data \
+    --template CirCor_test_students/PLX_GYY_test_results.csv \
+    --out PL3_G06_test_results.csv --model cnn
+```
+
+Com `--template`, o programa dá erro se faltar ou sobrar algum paciente, ou se algum valor for
+inválido. Sem `--template`, escreve um CSV simples com as colunas `patient_id,murmur`:
 
 ```bash
 python murmur_pipeline.py --wav-dir <pasta_com_wavs> --out predictions.csv --model cnn
 ```
 
-O resultado tem as colunas `patient_id,murmur` e uma linha por paciente. A previsão por paciente
-é obtida em dois passos: média das probabilidades das janelas de 5 s de cada gravação e, depois, regra
-hierárquica sobre as gravações do paciente (Present se alguma for Present; senão Unknown se alguma for
-Unknown; senão Absent). O mesmo pode ser feito na secção 7.5 do notebook. `--model` aceita `cnn`
-(por defeito), `rnn` e `ensemble`.
+A previsão por paciente é obtida em dois passos: média das probabilidades das janelas de 5 s de cada
+gravação e, depois, regra hierárquica sobre as gravações do paciente (Present se alguma for Present;
+senão Unknown se alguma for Unknown; senão Absent). O mesmo pode ser feito na secção 7.5 do notebook.
+`--model` aceita `cnn` (por defeito), `rnn` e `ensemble`.

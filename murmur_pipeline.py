@@ -5,7 +5,13 @@ do notebook MLII_atualizado.ipynb, mas sem precisar de labels nem de ficheiros .
 para poder ser aplicado a pacientes novos (por exemplo, o dataset escondido).
 
 Uso na linha de comandos:
+    # CSV simples (colunas patient_id,murmur)
     python murmur_pipeline.py --wav-dir <pasta_com_wavs> --out predictions.csv --model cnn
+
+    # CSV no formato do template do bónus (colunas ID,Murmur; mesmas linhas e ordem do template)
+    python murmur_pipeline.py --wav-dir CirCor_test_students/test_data \
+        --template CirCor_test_students/PLX_GYY_test_results.csv \
+        --out PL3_G06_test_results.csv --model cnn
 
 Os modelos e as estatísticas de normalização são lidos de `artefactos/` (criados pela
 secção 7.4 do notebook, ver `save_artifacts`).
@@ -295,14 +301,57 @@ def predict_patients(wav_dir, out_csv, artifacts_dir=DEFAULT_ARTIFACTS, model="c
     return df
 
 
+VALID_LABELS = ("Present", "Unknown", "Absent")
+
+
+def fill_template(template_csv, preds, out_csv):
+    """Preenche o template de submissão do bónus (colunas ID,Murmur) com as previsões.
+
+    `preds` é o DataFrame de `predict_patients_df` (patient_id, murmur). O ficheiro de saída tem
+    exatamente os IDs e a ordem do template, com as colunas ID,Murmur. Dá erro se faltar uma
+    previsão para algum ID do template, se sobrar alguma, se houver IDs repetidos ou se algum
+    valor não for Present, Unknown ou Absent.
+    """
+    tpl = pd.read_csv(template_csv, dtype={"ID": str})
+    if list(tpl.columns) != ["ID", "Murmur"]:
+        raise ValueError(f"O template devia ter as colunas ID,Murmur e tem {list(tpl.columns)}")
+    if tpl["ID"].duplicated().any():
+        raise ValueError("O template tem IDs repetidos")
+    if preds["patient_id"].astype(str).duplicated().any():
+        raise ValueError("As previsões têm pacientes repetidos")
+    mapa = dict(zip(preds["patient_id"].astype(str), preds["murmur"]))
+    em_falta = [i for i in tpl["ID"] if i not in mapa]
+    a_mais = sorted(set(mapa) - set(tpl["ID"]))
+    if em_falta:
+        raise ValueError(f"{len(em_falta)} IDs do template sem previsão: {em_falta[:10]}")
+    if a_mais:
+        raise ValueError(f"{len(a_mais)} pacientes previstos que não estão no template: {a_mais[:10]}")
+    out = pd.DataFrame({"ID": tpl["ID"], "Murmur": [mapa[i] for i in tpl["ID"]]})
+    invalidos = out[~out["Murmur"].isin(VALID_LABELS)]
+    if len(invalidos):
+        raise ValueError(f"Valores inválidos em Murmur: {invalidos.head().to_dict('records')}")
+    out.to_csv(out_csv, index=False)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description="Previsão de sopros cardíacos por paciente.")
     ap.add_argument("--wav-dir", required=True, help="pasta com os ficheiros IDPACIENTE_VÁLVULA.wav")
-    ap.add_argument("--out", default="predictions.csv", help="CSV de saída (patient_id,murmur)")
+    ap.add_argument("--out", default="predictions.csv",
+                    help="CSV de saída (patient_id,murmur; ou ID,Murmur se for dado --template)")
+    ap.add_argument("--template", default=None,
+                    help="CSV template do bónus (ID,Murmur): se dado, a saída segue o template "
+                         "(mesmos IDs e ordem)")
     ap.add_argument("--artifacts", default=DEFAULT_ARTIFACTS, help="pasta com os modelos guardados")
     ap.add_argument("--model", default="cnn", choices=["cnn", "rnn", "ensemble"])
     args = ap.parse_args()
-    predict_patients(args.wav_dir, args.out, args.artifacts, args.model)
+    if args.template is None:
+        predict_patients(args.wav_dir, args.out, args.artifacts, args.model)
+    else:
+        df = predict_patients_df(args.wav_dir, args.artifacts, args.model)
+        out = fill_template(args.template, df, args.out)
+        print(f"{len(out)} pacientes → {args.out}")
+        print(out["Murmur"].value_counts().to_string())
 
 
 if __name__ == "__main__":

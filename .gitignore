@@ -29,5 +29,9 @@ windows.csv
 # Material fora da entrega
 _fora_da_entrega/
 
+# Dados escondidos do bónus (não publicados) e ficheiros zip
+CirCor_test_students/
+*.zip
+
 # Saídas locais de teste
 predictions*.csv
